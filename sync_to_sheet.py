@@ -88,6 +88,7 @@ def upsert_row(sheets, thread_map, fields, sender):
             spreadsheetId=SHEET_ID, range=f"{SHEET_NAME}!A{entry['row']}:I{entry['row']}",
             valueInputOption="USER_ENTERED", body={"values": [merged]},
         ).execute()
+        entry["data"] = merged
         if status and status != old[5]:
             print(f"STATUS CHANGE [{company or old[0]}]: {old[5] or '(none)'} -> {status}")
         else:
@@ -98,10 +99,12 @@ def upsert_row(sheets, thread_map, fields, sender):
             fields.get("link") or "", sender or "", status or "", today,
             fields.get("notes") or "", thread_id,
         ]
-        sheets.values().append(
+        result = sheets.values().append(
             spreadsheetId=SHEET_ID, range=f"{SHEET_NAME}!A1",
             valueInputOption="USER_ENTERED", body={"values": [new_row]},
         ).execute()
+        row_num = int(result["updates"]["updatedRange"].rsplit("!A", 1)[1].split(":")[0])
+        thread_map[thread_id] = {"row": row_num, "data": new_row}
         print(f"NEW [{company or '(unknown)'}] status={status}")
 
 

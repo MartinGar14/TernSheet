@@ -18,8 +18,13 @@ load_dotenv()
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 TOKEN_PATH = "token.json"
 
-# First-pass filter: known ATS domains, per Claude.md. Narrows what gets
-# sent to the LLM instead of scanning every email in the inbox.
+# First-pass filter, per Claude.md. Narrows what gets sent to the LLM
+# instead of scanning every email in the inbox. Companies almost never send
+# from the ATS's own domain (e.g. Figma's confirmation comes from
+# figma.com, not greenhouse.io) so subject keywords catch far more than the
+# ATS domain list alone — the LLM call after this does the real filtering,
+# so false positives here (a newsletter that says "internship") are cheap
+# and harmless, they just come back with company: null and get skipped.
 ATS_DOMAINS = [
     "greenhouse.io",
     "lever.co",
@@ -29,7 +34,14 @@ ATS_DOMAINS = [
     "ashbyhq.com",
     "jobvite.com",
 ]
-ATS_QUERY = "(" + " OR ".join(f"from:{d}" for d in ATS_DOMAINS) + ")"
+SUBJECT_KEYWORDS = ["application", "applying", "interview", "internship"]
+ATS_QUERY = (
+    "(("
+    + " OR ".join(f"from:{d}" for d in ATS_DOMAINS)
+    + ") OR subject:("
+    + " OR ".join(SUBJECT_KEYWORDS)
+    + "))"
+)
 
 STATE_PATH = "state.json"
 
